@@ -116,7 +116,11 @@ class ImagioFileConverter(BaseAdapter):
            
                     # parse out the raw OA frame data
                     frameData = frameData[:sNumSamplesPerChannel*sNumChans*2] # throw away data not from the pulse (because pulses are variable length from shot to shot)
-                    buf = np.frombuffer(frameData, dtype=np.int16).reshape((sNumChans, sNumSamplesPerChannel))
+                    try:
+                        buf = np.frombuffer(frameData, dtype=np.int16).reshape((sNumChans, sNumSamplesPerChannel))
+                    except Exception as ex:
+                        print(f"WARNING: Cannot convert OA frame with size {len(frameData)=} into an buffer with {h=} and {w=}")      
+                        continue
                     ext_buf = []
                     for idx, row in enumerate(buf): # add padding so it will write to HDF5
                         ext_buf.append(np.concatenate([row, np.zeros(self.OAFRAME_DEFAULT_SAMPLES_PER_CHANNEL - sNumSamplesPerChannel)]))
@@ -136,7 +140,11 @@ class ImagioFileConverter(BaseAdapter):
                     (w, h, ss) = struct.unpack("<iii", headerFrameMeta[self.USFRAME_WIDTH_OFFSET:self.USFRAME_WIDTH_OFFSET+12]) # width, height and sample size
                     (iMicronsX, iMicronsY, iSoundVelocity) = struct.unpack("<iii", headerFrameMeta[self.USFRAME_MICRONSX_OFFSET:self.USFRAME_MICRONSX_OFFSET+12])
                     print(f"INFO: Found US frame.  {len(frameData) = }, {w = }, {h = }, {ss = }, {iMicronsX = }, {iMicronsY = }, {iSoundVelocity = }")
-                    buf = np.frombuffer(frameData[0:h*w], dtype=np.uint8).reshape(h, w)
+                    try:
+                        buf = np.frombuffer(frameData[0:h*w], dtype=np.uint8).reshape(h, w)
+                    except Exception as ex:
+                        print(f"WARNING: Cannot convert US frame with size {len(frameData)=} into an buffer with {h=} and {w=}")      
+                        continue
                     self.meta[MetadataAcquisitionTags.ULTRASOUND_IMAGE_DATA].append(buf)
                     self.meta[MetadataAcquisitionTags.ULTRASOUND_IMAGE_TIMESTAMPS].append(iTick / 1E3) # msec -> sec
 
